@@ -279,3 +279,15 @@ class Trainer:
         self.track_all_stats(r,e,modes)     
         if self.verbose>1: self._log_to_pbar(pbar,[r,e],modes)
         self.model.train()
+        
+        
+    def predict_dl(self,dl=[]):
+        if dl==[]: dl = self.train_dl
+        outputs = []
+        with torch.no_grad():
+            for b in dl:
+                i=b[0].to(self.device) # Input
+                g=b[1].to(self.device) # GT
+                o = self.model(i) # Output
+                outputs.append(o)
+        return outputs
