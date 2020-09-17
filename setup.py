@@ -17,6 +17,7 @@ setup(name='fastonn',
       license='MIT',
       test_suite="tests",
       packages=find_packages(),
+      package_data={'fastonn': ['fastonn/utils/data/transformation/transformation.h5']
       install_requires=['python_version >= "3.4"',
                       'numpy >= 1.13',
                       'torch >= 1.3.0',
