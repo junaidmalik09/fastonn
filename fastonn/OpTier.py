@@ -3,7 +3,7 @@ from .utils import *
 from .OpBlock import *
 
 class OpTier(nn.Module):
-    def __init__(self,in_channels,out_channels,kernel_size,operators,OPLIB,padding=-1,sampling_factor=1,layer_idx=-1,optimize=False):
+    def __init__(self,in_channels,out_channels,kernel_size,operators,OPLIB,padding=-1,sampling_factor=1,layer_idx=-1,optimize=True):
         super().__init__()
         self.in_channels = in_channels
         self.out_channels = out_channels
