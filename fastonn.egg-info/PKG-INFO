@@ -1,0 +1,127 @@
+Metadata-Version: 2.1
+Name: fastonn
+Version: 0.1.1
+Summary: Python library for training Operational Neural Networks (ONNs)
+Home-page: http://github.com/junaidmalik09/fastonn
+Author: Junaid Malik
+Author-email: junaid.malik@tuni.fi
+License: MIT
+Description: # fastonn
+        [![DOI](https://zenodo.org/badge/253556232.svg)](https://zenodo.org/badge/latestdoi/253556232)
+        [![Build Status](https://travis-ci.com/junaidmalik09/fastonn.svg?branch=master)](https://travis-ci.com/junaidmalik09/fastonn)
+        
+        
+        Python-based library for GPU-enabled training of ONN
+        
+        ## Installation
+        Download and unzip the repository. Run the following command from within the fastonn directory:
+        
+        ```
+        pip install .
+        ```
+        
+        ## Training for Image Transformation
+        ### Imports
+        ```
+        from fastonn.osl import *
+        from fastonn.utils import *
+        from fastonn import OpNetwork,utils,OpTier,OpBlock,Trainer
+        from fastonn.utils import get_dataset_with_folds,ONNDataset
+        ```
+        
+        ### Data preparation
+        ```
+        dataset,folds = get_dataset_with_folds(
+            problem='image2image',
+            input_path = r'D:\TestPackaging\FastONN\data\transformation\Noise\it_{0}.jpg',
+            num_images = 40,
+            gt_mask_path = r'D:\TestPackaging\FastONN\data\transformation\Gray\it_{0}.jpg',
+            split_ratio = 0.1
+        )
+        
+        fold_idx = 0
+        train_ds_now = ONNDataset(
+            Subset(dataset,folds[fold_idx][0]),
+            input_transform=['normalize','pad'],
+            input_pad = 17,
+            label_transform=['normalize']
+        )
+        train_dl = DataLoader(train_ds_now,batch_size=1,shuffle=True)
+        ```
+        
+        ### Operator Set Library
+        ```
+        nodal = [mul,cubic,sine,expp,sinh,sinc2.apply,chirp]
+        act = [tanh,lincut]
+        pool = [summ]
+        OPLIB = getOPLIB(nodal,pool,act)
+        ```
+        
+        ### Configuring ONN
+        ```
+        model = OpNetwork(
+            in_channels=1,
+            tier_sizes=[16,32,1],
+            kernel_sizes=[21,7,3],
+            operators=[[1],[6],[3]],
+            sampling_factors=[2,-2,1],
+            OPLIB=OPLIB,
+            pad=0
+        )
+        ```
+        
+        ### Training using Trainer utility
+        ```
+        trainer = Trainer(
+            model,
+            train_dl=train_dl,   
+            val_dl=[],
+            test_dl=[],
+            loss=mse_loss,
+            opt_name='cgd',
+            lr=1e-3,
+            metrics={'snr':(calc_snr,'max')},
+            device='cuda',
+            reset_fn=model.reset_parameters,
+            model_name="fold_{0}".format(fold_idx),
+            verbose=2,
+        )
+        trainer.train(num_epochs=240,num_runs=3)
+        ```
+        ### Visualize predictions
+        ```
+        test_dl = DataLoader(train_ds_now,batch_size=4)
+        for b in test_dl:
+            print(b[0].shape)
+            imshow_all(
+                torch.cat([
+                    b[0][:,:,17:77,17:77], #input
+                    model(b[0].cuda()).cpu(), #output
+                    b[1] #gt
+                ]),
+                num_rows=4
+            )
+        ```
+        ![alt text](https://raw.githubusercontent.com/junaidmalik09/fastonn/master/readme.png "Visualization")
+        
+        ## Plot training curve
+        ```
+        total_plots = len(trainer.metrics)
+        for idx,(key,_) in enumerate(trainer.metrics.items()):
+            plt.subplot(1,total_plots,idx+1)
+            plt.plot(trainer.stats['train'][key].mean(-1).permute(1,0))
+            plt.legend({'Run 1','Run 2','Run 3'})
+            plt.xlabel('Epochs')
+            plt.ylabel(key)
+            plt.grid()
+        ```
+        ![alt text](https://raw.githubusercontent.com/junaidmalik09/fastonn/master/readme2.png "Training curves")
+        
+        # References
+        Junaid Malik, Serkan Kiranyaz, Moncef Gabbouj: “FastONN -- Python based open-source GPU implementation for Operational Neural Networks”, 2020; <a href='http://arxiv.org/abs/2006.02267'>arXiv:2006.02267</a> <br/>
+        Kiranyaz, S., Ince, T., Iosifidis, A., Gabbouj, M., 2020. Operational neural networks. Neural Comput. Appl. https://doi.org/10.1007/s00521-020-04780-3 <br/>
+        Serkan Kiranyaz, Junaid Malik, Habib Ben Abdallah, Turker Ince, Alexandros Iosifidis, Moncef Gabbouj: “Self-Organized Operational Neural Networks with Generative Neurons”, 2020; <a href='http://arxiv.org/abs/2004.11778'>arXiv:2004.11778</a><br/>
+        
+        
+Platform: UNKNOWN
+Description-Content-Type: text/markdown
